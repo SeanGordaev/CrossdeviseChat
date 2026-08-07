@@ -10,8 +10,8 @@ CONFIG_PATH = PROJECT_DIR / "config.json"
 with open(CONFIG_PATH, "r", encoding="utf-8") as file:
     data = json.load(file)
 
-HOST = data["ip-local-server"]
-PORT = data["port-local-server"]
+HOST = data["connect-to-ip-local"]
+PORT = data["connect-to-port-local"]
 
 def recv_exact(conn: socket.socket, size):
     data_record = b""
