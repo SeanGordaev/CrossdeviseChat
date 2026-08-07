@@ -3,61 +3,61 @@ import socket
 import json, threading
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent       # папка Backend
-PROJECT_DIR = BASE_DIR.parent                    # папка CrossdeviceChat
-CONFIG_PATH = PROJECT_DIR / "config.json"
+class Client:
+    def __init__(self):
+        FILE_DIR = Path(__file__).resolve().parent # Where is the current file
+        CONFIG_PATH = FILE_DIR / "config.json" # Server Info
 
-with open(CONFIG_PATH, "r", encoding="utf-8") as file:
-    data = json.load(file)
+        self.chat: list[str] = []
 
-HOST = data["connect-to-ip-local"]
-PORT = data["connect-to-port-local"]
+        with open(CONFIG_PATH, "r", encoding="utf-8") as file:
+            data = json.load(file)
 
-def recv_exact(conn: socket.socket, size):
-    data_record = b""
-    data = data_record
+        HOST = data["connect-to-ip-local"]
+        PORT = data["connect-to-port-local"]
 
-    while len(data_record) < size:
-        data = conn.recv(size - len(data_record))
+                
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as Client:
+            Client.connect((HOST, int(PORT)))
 
-        if not data:
-            raise ConnectionError("Connection closed before receiving all data")
+            Messages = threading.Thread(target=self.GetAllMessage, args=(Client,))
+            Messages.start()
 
-        data_record += data
+            while True:
 
-    return data_record
+                text = input("Enter Text: ")
+                Data = text.encode()
+                Client.send(len(Data).to_bytes(2, "big") + Data)
 
 
-def GetAllMessage(conn: socket.socket):
-    while True:
-        try:
-            data_size = recv_exact(conn, 2) # First 2 bytes - the size of the message
-        except ConnectionError:
-            break
-
-        file_size = int.from_bytes(data_size, "big")
+    def recv_exact(self, conn: socket.socket, size):
         data_record = b""
+        data = data_record
 
-        while len(data_record) < file_size:
-
-            data = conn.recv(file_size - len(data_record))
+        while len(data_record) < size:
+            data = conn.recv(size - len(data_record))
 
             if not data:
-                break
+                raise ConnectionError("Connection closed before receiving all data")
 
             data_record += data
 
-        message = data_record.decode().split("\n")
-        print(message[-1])
-    conn.close()
+        return data_record
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as c:
-    c.connect((HOST, int(PORT)))
 
-    Messages = threading.Thread(target=GetAllMessage, args=(c,))
-    Messages.start()
+    def GetAllMessage(self, conn: socket.socket):
+        while True:
+            try:
+                data_size = self.recv_exact(conn, 2) # First 2 bytes - the size of the message
+                file_size = int.from_bytes(data_size, "big")
+                data_record = self.recv_exact(conn, file_size)
+            except ConnectionError:
+                break
 
-    text = input("Enter Text: ")
+            message = data_record.decode()
+            self.chat.append(message)
+            
+        conn.close()
 
-    c.send(len(text.encode()).to_bytes(2, "big"))
-    c.sendall(text.encode())
+if __name__ == "__main__":
+    C = Client()
