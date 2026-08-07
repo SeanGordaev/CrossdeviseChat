@@ -5,6 +5,11 @@ from pathlib import Path
 
 class Server:
     def __init__(self):
+        self.Clients: list[socket.socket] = []
+        self.ClientsLock = threading.Lock()
+        self.MessageFileLock = threading.Lock()
+
+
         FILE_DIR = Path(__file__).resolve().parent # Where is the current file
 
         self.CONFIG_PATH = FILE_DIR / "config.json" # Server Info
@@ -12,7 +17,6 @@ class Server:
 
         with open(self.CONFIG_PATH, "r", encoding="utf-8") as file:
             data = json.load(file)
-
         
         HOST = data["your-ip-local"]
         PORT = data["your-port-local"] 
@@ -24,14 +28,15 @@ class Server:
             while True:
                 conn, address = s.accept()
 
-                User = threading.Thread(target=self.UserIn, args=(conn,))
+                with self.ClientsLock:
+                    self.Clients.append(conn)
+                User = threading.Thread(target=self.UserIn, args=(conn, ))
                 User.start()
 
 
     def SaveMessage(self, text: str):
         with open(self.MESSAGE_PATH, 'a', encoding='utf-8') as m:
-            m.write(text)
-
+            m.write(text + "\n")
 
     def recv_exact(self, conn: socket.socket, size):
         data_record = b""
@@ -47,42 +52,35 @@ class Server:
 
         return data_record
 
+    def Broadcast(self, Data: bytes):
+        with self.ClientsLock:
+            ClientsCopy = self.Clients.copy()
 
-    def GetMessage(self, conn: socket.socket):
+        for Client in ClientsCopy:
+            try:
+                Client.sendall(len(Data).to_bytes(2, "big") + Data)
+            except OSError:
+                continue
+
+    def UserIn(self, conn: socket.socket):
         while True:
             try:
                 data_size = self.recv_exact(conn, 2) # First 2 bytes - the size of the message
+                file_size = int.from_bytes(data_size, "big")
+                data_record = self.recv_exact(conn, file_size)
             except ConnectionError:
                 break
-            file_size = int.from_bytes(data_size, "big")
-            data_record = b""
-
-            while len(data_record) < file_size:
-
-                data = conn.recv(file_size - len(data_record))
-
-                if not data:
-                    break
-
-                data_record += data
 
             message = data_record.decode()
             if message == "EXIT_USER_NOW": 
                 break
+            self.Broadcast(data_record)
             self.SaveMessage(message)
-        conn.close()
-
-    def GetAllMessage(self) -> bytes:
-        with open(self.CONFIG_PATH, 'r', encoding='utf-8') as m:
-            return m.read().encode('utf-8')
-
-    def UserIn(self, conn: socket.socket):
-        AllMessage = self.GetAllMessage()
-        conn.sendall(len(AllMessage).to_bytes(2, "big"))
-        conn.sendall(AllMessage)
-                
-        DetectMessage = threading.Thread(target=self.GetMessage, args=(conn,))
-        DetectMessage.start()
+        with self.ClientsLock:
+            self.Clients.remove(conn)
+            conn.close()
 
 
-    
+
+if __name__ == "__main__":
+    Host = Server()
