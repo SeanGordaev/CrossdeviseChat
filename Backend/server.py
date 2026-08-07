@@ -1,13 +1,19 @@
 import socket
 import json
 import threading
+from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parent       # папка Backend
+PROJECT_DIR = BASE_DIR.parent                    # папка CrossdeviceChat
+CONFIG_PATH = PROJECT_DIR / "config.json"
 
-with open(r'Frontend\config.json', 'r', encoding='utf-8') as file:
+MESSAGE_PATH = BASE_DIR / "messages.txt"
+
+with open(CONFIG_PATH, "r", encoding="utf-8") as file:
     data = json.load(file)
 
 def SaveMessage(text: str):
-    with open(r'Backend\messages.txt', 'a', encoding='utf-8') as m:
+    with open(CONFIG_PATH, 'a', encoding='utf-8') as m:
         m.write(text)
 
 
@@ -51,11 +57,13 @@ def GetMessage(conn: socket.socket):
     conn.close()
 
 def GetAllMessage() -> bytes:
-    with open(r'Backend\messages.txt', 'r', encoding='utf-8') as m:
+    with open(CONFIG_PATH, 'r', encoding='utf-8') as m:
         return m.read().encode('utf-8')
 
 def UserIn(conn: socket.socket):
-    conn.sendall(GetAllMessage())
+    AllMessage = GetAllMessage()
+    conn.sendall(len(AllMessage).to_bytes(2, "big"))
+    conn.sendall(AllMessage)
             
     DetectMessage = threading.Thread(target=GetMessage, args=(conn,))
     DetectMessage.start()
@@ -64,7 +72,7 @@ def UserIn(conn: socket.socket):
 HOST = data["ip-local-server"]  # Standard loopback interface address (localhost)
 PORT = data["port-local-server"]  # Port to listen on (non-privileged ports are > 1023)
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind((HOST, PORT))
+    s.bind((HOST, int(PORT)))
     s.listen()
 
 
