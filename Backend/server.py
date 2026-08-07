@@ -3,83 +3,86 @@ import json
 import threading
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent       # папка Backend
-PROJECT_DIR = BASE_DIR.parent                    # папка CrossdeviceChat
-CONFIG_PATH = PROJECT_DIR / "config.json"
+class Server:
+    def __init__(self):
+        FILE_DIR = Path(__file__).resolve().parent # Where is the current file
 
-MESSAGE_PATH = BASE_DIR / "messages.txt"
+        self.CONFIG_PATH = FILE_DIR / "config.json" # Server Info
+        self.MESSAGE_PATH = FILE_DIR / "messages.txt" # All Messages
 
-with open(CONFIG_PATH, "r", encoding="utf-8") as file:
-    data = json.load(file)
+        with open(self.CONFIG_PATH, "r", encoding="utf-8") as file:
+            data = json.load(file)
 
-def SaveMessage(text: str):
-    with open(CONFIG_PATH, 'a', encoding='utf-8') as m:
-        m.write(text)
-
-
-def recv_exact(conn: socket.socket, size):
-    data_record = b""
-    data = data_record
-
-    while len(data_record) < size:
-        data = conn.recv(size - len(data_record))
-
-        if not data:
-            raise ConnectionError("Connection closed before receiving all data")
-
-        data_record += data
-
-    return data_record
+        
+        HOST = data["your-ip-local"]
+        PORT = data["your-port-local"] 
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind((HOST, int(PORT)))
+            s.listen()
 
 
-def GetMessage(conn: socket.socket):
-    while True:
-        try:
-            data_size = recv_exact(conn, 2) # First 2 bytes - the size of the message
-        except ConnectionError:
-            break
-        file_size = int.from_bytes(data_size, "big")
+            while True:
+                conn, address = s.accept()
+
+                User = threading.Thread(target=self.UserIn, args=(conn,))
+                User.start()
+
+
+    def SaveMessage(self, text: str):
+        with open(self.MESSAGE_PATH, 'a', encoding='utf-8') as m:
+            m.write(text)
+
+
+    def recv_exact(self, conn: socket.socket, size):
         data_record = b""
+        data = data_record
 
-        while len(data_record) < file_size:
-
-            data = conn.recv(file_size - len(data_record))
+        while len(data_record) < size:
+            data = conn.recv(size - len(data_record))
 
             if not data:
-                break
+                raise ConnectionError("Connection closed before receiving all data")
 
             data_record += data
 
-        message = data_record.decode()
-        if message == "EXIT_USER_NOW": 
-            break
-        SaveMessage(message)
-    conn.close()
-
-def GetAllMessage() -> bytes:
-    with open(CONFIG_PATH, 'r', encoding='utf-8') as m:
-        return m.read().encode('utf-8')
-
-def UserIn(conn: socket.socket):
-    AllMessage = GetAllMessage()
-    conn.sendall(len(AllMessage).to_bytes(2, "big"))
-    conn.sendall(AllMessage)
-            
-    DetectMessage = threading.Thread(target=GetMessage, args=(conn,))
-    DetectMessage.start()
+        return data_record
 
 
-HOST = data["ip-local-server"]  # Standard loopback interface address (localhost)
-PORT = data["port-local-server"]  # Port to listen on (non-privileged ports are > 1023)
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind((HOST, int(PORT)))
-    s.listen()
+    def GetMessage(self, conn: socket.socket):
+        while True:
+            try:
+                data_size = self.recv_exact(conn, 2) # First 2 bytes - the size of the message
+            except ConnectionError:
+                break
+            file_size = int.from_bytes(data_size, "big")
+            data_record = b""
 
+            while len(data_record) < file_size:
 
-    while True:
-        conn, address = s.accept()
+                data = conn.recv(file_size - len(data_record))
 
-        User = threading.Thread(target=UserIn, args=(conn,))
-        User.start()
+                if not data:
+                    break
+
+                data_record += data
+
+            message = data_record.decode()
+            if message == "EXIT_USER_NOW": 
+                break
+            self.SaveMessage(message)
+        conn.close()
+
+    def GetAllMessage(self) -> bytes:
+        with open(self.CONFIG_PATH, 'r', encoding='utf-8') as m:
+            return m.read().encode('utf-8')
+
+    def UserIn(self, conn: socket.socket):
+        AllMessage = self.GetAllMessage()
+        conn.sendall(len(AllMessage).to_bytes(2, "big"))
+        conn.sendall(AllMessage)
+                
+        DetectMessage = threading.Thread(target=self.GetMessage, args=(conn,))
+        DetectMessage.start()
+
 
     
