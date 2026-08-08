@@ -1,10 +1,10 @@
 import tkinter as tk
-from client import *
+from chat_client import *
 import json
 
-class ClientGUI:
+class ChatClientGUI:
     def __init__(self):
-        self.C = Client()
+        self.C = ChatClient()
         self.Chat = self.C.GetChat
 
         self.root = tk.Tk()

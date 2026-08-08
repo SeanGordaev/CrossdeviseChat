@@ -3,7 +3,7 @@ import socket
 import json, threading
 from pathlib import Path
 
-class Client:
+class ChatClient:
     def __init__(self):
         FILE_DIR = Path(__file__).resolve().parent # Where is the current file
         CONFIG_PATH = FILE_DIR / "config.json" # Server Info
