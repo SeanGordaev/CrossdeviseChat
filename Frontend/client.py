@@ -8,7 +8,8 @@ class Client:
         FILE_DIR = Path(__file__).resolve().parent # Where is the current file
         CONFIG_PATH = FILE_DIR / "config.json" # Server Info
 
-        self.chat: list[str] = []
+        self.__Chat: list[str] = []
+        self.__NewMessage = False
 
         with open(CONFIG_PATH, "r", encoding="utf-8") as file:
             data = json.load(file)
@@ -16,11 +17,22 @@ class Client:
         HOST = data["connect-to-ip-local"]
         PORT = data["connect-to-port-local"]
 
-        self.Client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.Client.connect((HOST, int(PORT)))
+        self.__Client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.__Client.connect((HOST, int(PORT)))
 
-        Messages = threading.Thread(target=self.GetAllMessage, args=(Client,))
+        Messages = threading.Thread(target=self.GetAllMessage)
         Messages.start()
+
+    @property
+    def GetChat(self) -> list[str]:
+        return self.__Chat
+
+    @property
+    def IsThereNewMessage(self) -> bool:
+        return self.__NewMessage
+
+    def IReadTheNewMessage(self) -> None:
+        self.__NewMessage = False
 
     def recv_exact(self, conn: socket.socket, size):
         data_record = b""
@@ -37,25 +49,24 @@ class Client:
         return data_record
 
 
-    def GetAllMessage(self, conn: socket.socket):
+    def GetAllMessage(self):
         while True:
             try:
-                data_size = self.recv_exact(conn, 2) # First 2 bytes - the size of the message
+                data_size = self.recv_exact(self.__Client, 2) # First 2 bytes - the size of the message
                 file_size = int.from_bytes(data_size, "big")
-                data_record = self.recv_exact(conn, file_size)
+                data_record = self.recv_exact(self.__Client, file_size)
             except ConnectionError:
                 break
 
             message = data_record.decode()
-            self.chat.append(message)
+            self.__Chat.append(message)
+            self.__NewMessage = True
             
-        conn.close()
+        self.__Client.close()
 
     def SendMessage(self, text: str):
-        while True:
-            text = input("Enter Text: ")
-            Data = text.encode()
-            self.Client.send(len(Data).to_bytes(2, "big") + Data)
+        Data = text.encode()
+        self.__Client.sendall(len(Data).to_bytes(2, "big") + Data)
 
 
 if __name__ == "__main__":

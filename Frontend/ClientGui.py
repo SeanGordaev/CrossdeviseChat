@@ -1,13 +1,20 @@
 import tkinter as tk
 from client import *
+import threading
+import hashlib
+import json
 
 class ClientGUI:
     def __init__(self):
         self.C = Client()
+        self.Chat = self.C.GetChat
 
         self.root = tk.Tk()
         self.root.title("CrossdeviseChat")
-        self.root.geometry("800x600")
+        self.root.geometry("400x600")
+
+        UpdChat = threading.Thread(target=self.UpdateChat)
+        UpdChat.start()
 
         # Chat display (read-only)
         self.chat_frame = tk.Frame(self.root)
@@ -36,17 +43,37 @@ class ClientGUI:
 
         self.root.mainloop()
 
-    def send_message(self):
+    def WriteChat(self):
+        self.chat_text.config(state=tk.NORMAL)
+        self.chat_text.delete("1.0", tk.END)
+
+        for i in self.Chat:
+            self.chat_text.insert(tk.END, i + "\n")
+            self.chat_text.see(tk.END)
+
+        self.chat_text.config(state=tk.DISABLED)
+
+
+
+    def UpdateChat(self):
+        while True:
+            if self.C.IsThereNewMessage:
+                self.Chat = self.C.GetChat
+
+                self.WriteChat()
+
+                self.C.IReadTheNewMessage()
+            
+
+    def send_message(self, event=None):
         msg = self.input_var.get().strip()
+        self.input_var.set("")
         if not msg:
             return
-        
-        self.chat_text.config(state=tk.NORMAL)
 
-        self.chat_text.insert(tk.END, f"You: {msg}\n")
-        self.chat_text.see(tk.END)
-        self.chat_text.config(state=tk.DISABLED)
-        self.input_var.set("")
+        self.C.SendMessage(msg)
+
+        
 
 if __name__ == "__main__":
     GUI = ClientGUI()
