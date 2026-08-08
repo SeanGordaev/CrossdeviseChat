@@ -16,19 +16,11 @@ class Client:
         HOST = data["connect-to-ip-local"]
         PORT = data["connect-to-port-local"]
 
-                
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as Client:
-            Client.connect((HOST, int(PORT)))
+        self.Client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.Client.connect((HOST, int(PORT)))
 
-            Messages = threading.Thread(target=self.GetAllMessage, args=(Client,))
-            Messages.start()
-
-            while True:
-
-                text = input("Enter Text: ")
-                Data = text.encode()
-                Client.send(len(Data).to_bytes(2, "big") + Data)
-
+        Messages = threading.Thread(target=self.GetAllMessage, args=(Client,))
+        Messages.start()
 
     def recv_exact(self, conn: socket.socket, size):
         data_record = b""
@@ -58,6 +50,13 @@ class Client:
             self.chat.append(message)
             
         conn.close()
+
+    def SendMessage(self, text: str):
+        while True:
+            text = input("Enter Text: ")
+            Data = text.encode()
+            self.Client.send(len(Data).to_bytes(2, "big") + Data)
+
 
 if __name__ == "__main__":
     C = Client()
