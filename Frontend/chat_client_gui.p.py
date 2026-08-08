@@ -74,4 +74,4 @@ class ChatClientGUI:
         
 
 if __name__ == "__main__":
-    GUI = ClientGUI()
+    GUI = ChatClientGUI()
