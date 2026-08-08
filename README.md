@@ -99,6 +99,8 @@ CrossdeviseChat/
 └── README_RU.md
 ```
 
+> **Note:** the current server launcher is named `start_servet.bat`. Renaming it to `start_server.bat` is recommended for consistency.
+
 ### Backend
 
 The `Backend` folder contains everything required to run the server.
@@ -168,7 +170,43 @@ cd CrossdeviseChat
 
 ---
 
-### 2. Configure the server
+### 2. Install Python and required libraries
+
+CrossdeviseChat currently uses only modules from the Python standard library:
+
+- `socket`
+- `json`
+- `threading`
+- `pathlib`
+- `tkinter`
+
+Because of this, **no additional packages need to be installed with `pip`**.
+
+On Windows, Python can be installed directly from the command line with WinGet:
+
+```powershell
+winget install --id Python.Python.3.14 --exact
+```
+
+After the installation finishes, close and reopen the terminal, then verify Python:
+
+```powershell
+python --version
+```
+
+You can also verify that Tkinter is available:
+
+```powershell
+python -m tkinter
+```
+
+If Tkinter is installed correctly, a small test window should open.
+
+If Python is already installed and both commands work, you can skip this step.
+
+---
+
+### 3. Configure the server
 
 Open:
 
@@ -208,7 +246,7 @@ For example:
 
 ---
 
-### 3. Configure the client
+### 4. Configure the client
 
 Open:
 
