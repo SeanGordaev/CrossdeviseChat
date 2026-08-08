@@ -1,10 +1,14 @@
 # CrossdeviseChat
 
-**CrossdeviseChat** is a lightweight local network chat application designed for communication between devices connected to the same LAN.
+[English](README.md) | [Русский](README_RU.md)
 
-One computer — or a dedicated machine on the local network — acts as the **host/server**. Other computers connect to it as clients, allowing everyone on the network to participate in a shared chat.
+**CrossdeviseChat** is a lightweight self-hosted chat application for devices connected to the same local network (LAN).
 
-The main goal of the project is to build a simple, self-hosted chat system that works entirely inside a local network without depending on external messaging services or cloud infrastructure.
+One computer — or a dedicated machine on the LAN — runs the **server** from the `Backend` folder. Other computers run the **client** from the `Frontend` folder and connect to the server using its local IP address and port.
+
+The goal of the project is to provide a simple local chat that does not depend on external messaging services or cloud infrastructure.
+
+> 🚧 **Work in progress:** CrossdeviseChat is still under development. Its protocol, interface, and features may change.
 
 ---
 
@@ -23,91 +27,103 @@ CrossdeviseChat uses a **client-server architecture**:
         │                         │
         └──────────┬──────────────┘
                    │
-              TCP connection
+              TCP connections
                    │
              ┌─────▼─────┐
              │   Server  │
              │   / Host  │
              └─────┬─────┘
                    │
-             Message storage
+             messages.txt
 ```
 
-The server listens for incoming TCP connections from devices on the LAN.
+The server:
 
-Clients connect to the server using its local IP address and port. Messages are sent to the server, which acts as the central point of communication for the chat.
+- listens for incoming TCP connections;
+- keeps track of connected clients;
+- creates a separate thread for each connected client;
+- receives messages from clients;
+- broadcasts received messages to all currently connected clients;
+- stores received messages in `Backend/messages.txt`.
 
-This means that the host can be:
+The host can be:
 
-* one of the computers participating in the chat;
-* a dedicated computer;
-* a small home server connected to the LAN.
+- one of the computers participating in the chat;
+- a dedicated computer;
+- a small local server connected to the LAN.
 
 No Internet connection is required for communication inside the local network.
 
 ---
 
-## Current Goals
+## Current Features
 
-The project is currently focused on creating the basic networking infrastructure for a LAN chat.
+The current version includes:
 
-The intended functionality includes:
-
-* communication between multiple computers on the same local network;
-* one central host/server;
-* multiple simultaneous clients;
-* a shared chat visible to connected users;
-* persistent TCP connections;
-* reliable message transmission;
-* basic message history;
-* simple configuration of server IP and port.
+- TCP-based client-server communication;
+- multiple simultaneous client connections;
+- persistent TCP connections;
+- real-time message broadcasting;
+- a shared chat for connected clients;
+- a simple desktop GUI built with Tkinter;
+- sending messages with the **Send** button or **Enter**;
+- server-side message storage in `messages.txt`;
+- separate server and client configuration files;
+- 2-byte length-prefixed message framing;
+- multithreaded server-side client handling.
 
 ---
 
-## Current Architecture
+## Project Structure
 
-The project is divided into two main parts:
+All **server-side files** are stored in `Backend/`.
+
+All **client-side files** are stored in `Frontend/`.
 
 ```text
 CrossdeviseChat/
 │
 ├── Backend/
-│   ├── server.py
 │   ├── config.json
-│   └── messages.txt
+│   ├── messages.txt
+│   ├── server.py
+│   └── start_servet.bat
 │
 ├── Frontend/
-│   └── ...
+│   ├── chat_client.py
+│   ├── chat_client_gui.py
+│   ├── config.json
+│   └── start_client.bat
 │
-└── README.md
+├── README.md
+└── README_RU.md
 ```
 
 ### Backend
 
-The backend is responsible for:
+The `Backend` folder contains everything required to run the server.
 
-* accepting client connections;
-* receiving messages;
-* managing connected clients;
-* storing messages;
-* providing the central communication point for the network.
+- `server.py` — server networking logic;
+- `config.json` — local IP address and port used by the server;
+- `messages.txt` — simple persistent message storage;
+- `start_servet.bat` — Windows launcher for the server.
 
 ### Frontend
 
-The frontend/client is responsible for:
+The `Frontend` folder contains everything required to run a client.
 
-* connecting to the host;
-* sending messages;
-* receiving chat data;
-* displaying messages to the user.
+- `chat_client.py` — client networking logic;
+- `chat_client_gui.py` — Tkinter graphical interface;
+- `config.json` — address of the server the client should connect to;
+- `start_client.bat` — Windows launcher for the client GUI.
 
 ---
 
 ## Message Protocol
 
-CrossdeviseChat uses TCP sockets for communication.
+CrossdeviseChat uses TCP sockets.
 
-Messages are transferred using a simple framing system:
+TCP is a **byte stream**, so one `recv()` call is not guaranteed to contain exactly one complete message. To solve this, CrossdeviseChat prefixes every message with its size:
 
 ```text
 ┌──────────────────┬────────────────────────────┐
@@ -116,23 +132,28 @@ Messages are transferred using a simple framing system:
 └──────────────────┴────────────────────────────┘
 ```
 
-The first **2 bytes** contain the size of the message.
+The first **2 bytes**, stored in big-endian byte order, contain the message size.
 
-The receiver then knows exactly how many bytes must be read for the complete message.
+The receiver:
 
-This avoids relying on individual `recv()` calls to correspond to individual messages, since TCP is a byte stream rather than a message-based protocol.
+1. reads exactly 2 bytes;
+2. converts them into the message length;
+3. reads exactly that number of bytes;
+4. decodes the received data as text.
+
+With a 2-byte unsigned length field, a single framed message can contain up to **65,535 bytes**.
 
 ---
 
 ## Requirements
 
-The project currently requires:
+- Python 3
+- Tkinter
+- TCP/IP support
+- devices connected to the same local network
+- firewall/network rules that allow the selected TCP port
 
-* Python 3
-* a local network connection
-* TCP/IP connectivity between devices
-
-The host and clients must be able to reach each other through the LAN.
+The server and clients must be able to reach each other through the LAN.
 
 ---
 
@@ -145,176 +166,277 @@ git clone https://github.com/SeanGordaev/CrossdeviseChat.git
 cd CrossdeviseChat
 ```
 
-### 2. Configure the connection
+---
 
-CrossdeviseChat uses two separate configuration files: one for the server and one for the client.
+### 2. Configure the server
 
-Backend configuration
+Open:
 
-Inside Backend/config.json:
+```text
+Backend/config.json
+```
 
-``` json 
+Example:
+
+```json
 {
-    "your-ip-local": "...",
-    "your-port-local": "..."
+    "your-ip-local": "192.168.1.100",
+    "your-port-local": "5050"
 }
 ```
 
-This configuration tells the server who it is on the local network — which local IP address and port it should use for accepting incoming client connections.
+This file tells the server **who it is on the local network**:
+
+```text
+Backend/config.json
+        │
+        └── "Who am I?"
+            │
+            ├── Local server IP
+            └── Local server port
+```
+
+`your-ip-local` should be the local IP address of the computer that will host the chat.
+
+`your-port-local` is the TCP port on which the server will listen for clients.
 
 For example:
 
-``` json 
-{
-    "your-ip-local": "192.168.1.100",
-    "your-port-local": "5050"
-}
-```
-
-In this example, the server will use:
-
+```text
 192.168.1.100:5050
-Frontend configuration
-
-Inside Frontend/config.json:
-
-``` json
-{
-    "connect-to-ip-local": "...",
-    "connect-to-port-local": "..."
-}
 ```
 
-This configuration tells the client who it should connect to.
+---
 
-The IP address and port should normally match the values configured on the server.
+### 3. Configure the client
 
-For example, if the server configuration is:
+Open:
 
-``` json
-{
-    "your-ip-local": "192.168.1.100",
-    "your-port-local": "5050"
-}
+```text
+Frontend/config.json
 ```
 
-Then the client configuration should be:
+Example:
 
-``` json
+```json
 {
     "connect-to-ip-local": "192.168.1.100",
     "connect-to-port-local": "5050"
 }
 ```
 
-In simple terms:
+This file tells the client **who it should connect to**:
 
 ```text
-Backend/config.json
-        │
-        └── "Who am I?" → Server IP and port
-
 Frontend/config.json
         │
-        └── "Who do I connect to?" → Server IP and port
+        └── "Who do I connect to?"
+            │
+            ├── Server IP
+            └── Server port
 ```
 
-If several computers want to join the same chat, each client should set its connect-to-ip-local and connect-to-port-local values to the IP address and port of the computer running the server.
+The client values should normally match the IP address and port configured in `Backend/config.json` on the server computer.
 
-### 3. Start the server
+If several computers want to join the same chat, every client should point to the same server.
+
+---
+
+## Starting the Server
+
+### Windows — quick launch
+
+Open the `Backend` folder and run:
+
+```text
+start_servet.bat
+```
+
+The batch file changes the working directory to `Backend` and starts:
 
 ```bash
-python Backend/server.py
+python server.py
 ```
 
-The server should now begin listening for connections from other computers on the network.
+### Manual launch
 
-### 4. Connect clients
+From the project root:
 
-Client devices should connect to:
+```bash
+cd Backend
+python server.py
+```
+
+Keep the server running while clients are connected.
+
+---
+
+## Starting a Client
+
+Before starting a client, make sure `Frontend/config.json` contains the correct server IP address and port.
+
+### Windows — quick launch
+
+Open the `Frontend` folder and run:
 
 ```text
-SERVER_IP:SERVER_PORT
+start_client.bat
 ```
 
-For example:
+The batch file changes the working directory to `Frontend` and starts the GUI:
 
-```text
-192.168.1.100:5050
+```bash
+python chat_client_gui.py
 ```
 
-All clients must be able to reach the host through the local network.
+### Manual launch
+
+From the project root:
+
+```bash
+cd Frontend
+python chat_client_gui.py
+```
+
+Repeat this on every computer that should join the chat.
 
 ---
 
 ## Example Network
 
-For example, a home network could look like this:
-
 ```text
 Router
 192.168.1.1
      │
-     ├── Chat Server
+     ├── Server / Host
      │   192.168.1.100:5050
      │
-     ├── PC #1
+     ├── Client A
      │   192.168.1.101
      │
-     ├── PC #2
+     ├── Client B
      │   192.168.1.102
      │
-     └── Laptop
+     └── Client C
          192.168.1.103
 ```
 
-All clients connect directly to:
+All clients connect to:
 
 ```text
 192.168.1.100:5050
 ```
 
-The server then handles communication between them.
+Clients do not need to connect directly to each other:
+
+```text
+Client A ──┐
+           │
+Client B ──┼──► Server ──► Broadcast to connected clients
+           │
+Client C ──┘
+```
+
+---
+
+## Concurrency
+
+The server creates a separate thread for every connected client.
+
+The shared client list is protected with a thread lock while connections are added, removed, or copied for broadcasting.
+
+This allows multiple clients to remain connected to the same server at the same time.
+
+---
+
+## Message Storage
+
+Every regular message received by the server is appended to:
+
+```text
+Backend/messages.txt
+```
+
+This provides basic server-side persistence.
+
+Currently, stored messages are **not automatically sent to newly connected clients**. A client sees messages broadcast while it is connected.
+
+---
+
+## Current Limitations
+
+CrossdeviseChat is still an experimental project.
+
+The current version does not yet provide:
+
+- usernames;
+- timestamps;
+- automatic chat-history synchronization;
+- automatic LAN server discovery;
+- automatic reconnection;
+- authentication;
+- encrypted communication;
+- file transfer;
+- a user-friendly configuration screen;
+- complete graceful shutdown/disconnect handling from the GUI.
+
+The server also recognizes the special message:
+
+```text
+EXIT_USER_NOW
+```
+
+as a disconnect command, but the current GUI does not yet expose this as a complete user-facing disconnect system.
 
 ---
 
 ## Roadmap
 
-CrossdeviseChat is still under development.
+Already implemented:
 
-Planned improvements include:
+- [x] TCP client-server communication
+- [x] Multiple simultaneous clients
+- [x] Persistent TCP connections
+- [x] Real-time message broadcasting
+- [x] Basic message storage
+- [x] Tkinter desktop GUI
+- [x] Send with button or Enter
+- [x] Separate Backend/Frontend configuration
+- [x] 2-byte length-prefixed message framing
+- [x] Multithreaded server
+- [x] Windows `.bat` launchers for server and client
 
-* [ ] Real-time message broadcasting
-* [ ] Multiple simultaneous users
-* [ ] Usernames
-* [ ] Join/leave notifications
-* [ ] Better message history
-* [ ] Timestamps
-* [ ] Improved client interface
-* [ ] Automatic server discovery on the LAN
-* [ ] Better configuration management
-* [ ] Graceful client disconnection
-* [ ] Error handling and reconnection
-* [ ] Message protocol improvements
-* [ ] Optional authentication
-* [ ] Optional message encryption
-* [ ] File transfer
-* [ ] Cross-platform support
+Planned:
+
+- [ ] Usernames
+- [ ] Join/leave notifications
+- [ ] Timestamps
+- [ ] Send stored chat history to newly connected clients
+- [ ] Automatic server discovery on the LAN
+- [ ] Automatic reconnection
+- [ ] Better error handling
+- [ ] Graceful GUI disconnect
+- [ ] Configuration screen
+- [ ] Authentication
+- [ ] Message encryption
+- [ ] File transfer
+- [ ] Cross-platform launch scripts / packaging
 
 ---
 
 ## Security
 
-CrossdeviseChat is intended primarily for communication inside **trusted local networks**.
+CrossdeviseChat is currently intended for use inside **trusted local networks**.
 
-The current development version should not be exposed directly to the public Internet.
+The current protocol does not provide authentication or encryption. Because of this, the application should **not be exposed directly to the public Internet**.
 
-Future versions may introduce features such as:
+Possible future improvements include:
 
-* client authentication;
-* encrypted communication;
-* permissions;
-* safer message validation.
+- client authentication;
+- encrypted connections;
+- permissions;
+- message validation;
+- connection limits and abuse protection.
 
 ---
 
@@ -324,27 +446,28 @@ Most modern chat applications depend on external servers and Internet connectivi
 
 CrossdeviseChat explores a different approach:
 
-> **If the devices are already connected to the same network, they should be able to communicate directly through infrastructure controlled by the users themselves.**
+> **If devices are already connected to the same local network, they should be able to communicate through infrastructure controlled by the users themselves.**
 
-The project is also an opportunity to explore networking concepts such as:
+The project is also an opportunity to explore:
 
-* TCP sockets;
-* client-server architecture;
-* message framing;
-* concurrent connections;
-* local IP addressing;
-* network protocols;
-* server-side message handling.
+- TCP sockets;
+- client-server architecture;
+- message framing;
+- multithreading;
+- concurrent connections;
+- local IP addressing;
+- network protocols;
+- server-side broadcasting;
+- GUI/network interaction;
+- connection lifecycle management.
 
 ---
 
 ## Contributing
 
-The project is in active development.
-
 Suggestions, bug reports, experiments, and improvements are welcome.
 
-If you want to contribute:
+To contribute:
 
 1. Fork the repository.
 2. Create a new branch.
@@ -359,11 +482,3 @@ If you want to contribute:
 Created by **Sean Gordaev**
 
 GitHub: `SeanGordaev`
-
----
-
-## Status
-
-> 🚧 **Work in progress**
-
-CrossdeviseChat is currently an experimental project and its architecture, protocol, and features may change during development.
