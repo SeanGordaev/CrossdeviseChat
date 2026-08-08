@@ -2,8 +2,10 @@
 # Copyright (C) 2026 Sean Gordaev
 #
 # This file is part of CrossdeviseChat.
-# CrossdeviseChat is licensed under the GNU Affero General Public License v3.0.
-# See the LICENSE file for details.
+# This file is licensed under the GNU Affero General Public License v3.0 only.
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# See the LICENSE file for the full license text.
 
 import tkinter as tk
 from chat_client import *
