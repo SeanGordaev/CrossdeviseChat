@@ -1,7 +1,5 @@
 import tkinter as tk
 from client import *
-import threading
-import hashlib
 import json
 
 class ClientGUI:
@@ -13,35 +11,35 @@ class ClientGUI:
         self.root.title("CrossdeviseChat")
         self.root.geometry("400x600")
 
-        UpdChat = threading.Thread(target=self.UpdateChat)
-        UpdChat.start()
-
         # Chat display (read-only)
         self.chat_frame = tk.Frame(self.root)
         self.chat_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        self.scrollbar = tk.Scrollbar(self.chat_frame)
-        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        scrollbar = tk.Scrollbar(self.chat_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self.chat_text = tk.Text(self.chat_frame, wrap=tk.WORD, yscrollcommand=self.scrollbar.set, state=tk.DISABLED)
+        self.chat_text = tk.Text(self.chat_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set, state=tk.DISABLED)
         self.chat_text.pack(fill=tk.BOTH, expand=True)
-        self.scrollbar.config(command=self.chat_text.yview)
+        scrollbar.config(command=self.chat_text.yview)
 
         # Input area with send button
-        self.input_frame = tk.Frame(self.root)
-        self.input_frame.pack(fill=tk.X, padx=10, pady=(0,10))
+        input_frame = tk.Frame(self.root)
+        input_frame.pack(fill=tk.X, padx=10, pady=(0,10))
 
         self.input_var = tk.StringVar()
-        self.input_entry = tk.Entry(self.input_frame, textvariable=self.input_var)
-        self.input_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0,5))
+        input_entry = tk.Entry(input_frame, textvariable=self.input_var)
+        input_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0,5))
 
-        self.send_button = tk.Button(self.input_frame, text="Send", command=self.send_message)
-        self.send_button.pack(side=tk.RIGHT)
+        send_button = tk.Button(input_frame, text="Send", command=self.send_message)
+        send_button.pack(side=tk.RIGHT)
 
         # bind Enter to send
-        self.input_entry.bind('<Return>', self.send_message)
+        input_entry.bind('<Return>', self.send_message)
+
+        self.UpdateChat()
 
         self.root.mainloop()
+
 
     def WriteChat(self):
         self.chat_text.config(state=tk.NORMAL)
@@ -56,13 +54,13 @@ class ClientGUI:
 
 
     def UpdateChat(self):
-        while True:
-            if self.C.IsThereNewMessage:
-                self.Chat = self.C.GetChat
+        if self.C.IsThereNewMessage:
+            self.Chat = self.C.GetChat
 
-                self.WriteChat()
+            self.WriteChat()
 
-                self.C.IReadTheNewMessage()
+            self.C.IReadTheNewMessage()
+        self.root.after(50, self.UpdateChat)
             
 
     def send_message(self, event=None):
