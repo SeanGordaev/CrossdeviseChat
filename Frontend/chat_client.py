@@ -1,4 +1,11 @@
 
+# CrossdeviseChat
+# Copyright (C) 2026 Sean Gordaev
+#
+# This file is part of CrossdeviseChat.
+# CrossdeviseChat is licensed under the GNU Affero General Public License v3.0.
+# See the LICENSE file for details.
+
 import socket
 import json, threading
 from pathlib import Path

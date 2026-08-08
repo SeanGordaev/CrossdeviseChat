@@ -520,3 +520,11 @@ To contribute:
 Created by **Sean Gordaev**
 
 GitHub: `SeanGordaev`
+
+## License
+
+Copyright © 2026 Sean Gordaev.
+
+CrossdeviseChat is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
+
+See [LICENSE](LICENSE) for details.
