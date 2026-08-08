@@ -70,4 +70,4 @@ class ChatClient:
 
 
 if __name__ == "__main__":
-    C = Client()
+    C = ChatClient()
