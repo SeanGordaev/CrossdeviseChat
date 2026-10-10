@@ -16,7 +16,7 @@ class Server:
     def __init__(self):
         self.Clients: list[socket.socket] = []
         self.ClientsLock = threading.Lock()
-        self.MessageFileLock = threading.Lock()
+        # self.MessageFileLock = threading.Lock()
 
 
         FILE_DIR = Path(__file__).resolve().parent # Where is the current file
@@ -83,7 +83,7 @@ class Server:
             message = data_record.decode()
             if "EXIT_USER_NOW" in message:
                 self.Broadcast(f"{message.split(':')[0]} go away".encode())
-                self.SaveMessage(f"{message.split(':')[0]} go away".encode())
+                self.SaveMessage(f"{message.split(':')[0]} go away")
                 break
             self.Broadcast(data_record)
             self.SaveMessage(message)
