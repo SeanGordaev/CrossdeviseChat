@@ -78,5 +78,6 @@ class ChatClient:
         self.__Client.sendall(len(Data).to_bytes(2, "big") + Data)
 
 
+
 if __name__ == "__main__":
     C = ChatClient()

@@ -81,7 +81,9 @@ class Server:
                 break
 
             message = data_record.decode()
-            if message == "EXIT_USER_NOW": 
+            if "EXIT_USER_NOW" in message:
+                self.Broadcast(f"{message.split(':')[0]} go away".encode())
+                self.SaveMessage(f"{message.split(':')[0]} go away".encode())
                 break
             self.Broadcast(data_record)
             self.SaveMessage(message)

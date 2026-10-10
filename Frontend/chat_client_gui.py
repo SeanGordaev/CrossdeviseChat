@@ -31,6 +31,16 @@ class ChatClientGUI:
         self.chat_text.pack(fill=tk.BOTH, expand=True)
         scrollbar.config(command=self.chat_text.yview)
 
+        # Name input
+        name_frame = tk.Frame(self.root)
+        name_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
+
+        tk.Label(name_frame, text="Name:").pack(side=tk.LEFT, padx=(0, 5))
+
+        self.name_var = tk.StringVar()
+        self.name_entry = tk.Entry(name_frame, textvariable=self.name_var)
+        self.name_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
         # Input area with send button
         input_frame = tk.Frame(self.root)
         input_frame.pack(fill=tk.X, padx=10, pady=(0,10))
@@ -63,6 +73,7 @@ class ChatClientGUI:
 
 
     def UpdateChat(self):
+        self.root.protocol("WM_DELETE_WINDOW", self.ExitUser)
         if self.C.IsThereNewMessage:
             self.Chat = self.C.GetChat
 
@@ -73,13 +84,20 @@ class ChatClientGUI:
             
 
     def send_message(self, event=None):
+        name = self.name_var.get().strip() or "Anonymous"
+
         msg = self.input_var.get().strip()
         self.input_var.set("")
         if not msg:
             return
 
-        self.C.SendMessage(msg)
+        text = f"{name}: \"{msg}\""
+        self.C.SendMessage(text)
 
+    def ExitUser(self):
+        name = self.name_var.get().strip() or "Anonymous"
+        self.C.SendMessage(f"{name}:EXIT_USER_NOW")
+        self.root.destroy()
         
 
 if __name__ == "__main__":
